@@ -7,6 +7,7 @@ package simi.program;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -27,12 +28,10 @@ public class SwingData {
 		int count = 0;
 		int curIndex = 0;
 		int ret = -1;
-		if ((indexBegin <0 || indexBegin >= data.size()) || (indexEnd <0 || indexEnd >= data.size()) || 
-				(indexEnd < indexBegin)){
-			System.out.println("Invalid Index provided");
-			return -1;
-		}
-		for (double dob : data.subList(indexBegin, indexEnd)) {
+
+		checkIndexLimits(indexBegin, indexEnd, data.size());
+
+		for (double dob : data.subList(indexBegin, indexEnd+1)) {
 			//System.out.println(dob);
 			
 			if (dob > threshold) {
@@ -48,7 +47,7 @@ public class SwingData {
 			curIndex++;
 		}
 			
-		return -2;
+		return -1;
 		
 	}
 
@@ -64,11 +63,10 @@ public class SwingData {
 		int count = 0;
 		int curIndex = 0;
 		int ret = -1;
-		if ((indexBegin <0 || indexBegin >= data.size()) || (indexEnd <0 || indexEnd >= data.size()) || 
-				(indexEnd > indexBegin)){
-			System.out.println("Invalid Index provided");
-			return -1;
-		}
+
+		checkBackIndexLimits(indexBegin, indexEnd, data.size());
+		checkThreholdLimits(thresholdLo, thresholdHi);
+
 		List<Double> temp = data.subList(indexEnd, indexBegin+1);
 				
 		Collections.reverse(temp);
@@ -89,7 +87,7 @@ public class SwingData {
 			curIndex++;
 		}
 			
-		return -2;
+		return -1;
 		
 		
 	}
@@ -107,14 +105,10 @@ public class SwingData {
 		int curIndex = 0;
 		int ret1 = -1;
 		int ret2 = -1;
-		//int ret = -1;
-		if ((indexBegin <0 || indexBegin >= data1.size()) || (indexEnd <0 || indexEnd >= data1.size()) || 
-				(indexEnd < indexBegin) ||
-				(indexBegin <0 || indexBegin >= data2.size()) || (indexEnd <0 || indexEnd >= data2.size())){
-			System.out.println("Invalid Index provided");
-			return -1;
-		}
-		
+
+		checkIndexLimits(indexBegin, indexEnd, data1.size());
+		checkIndexLimits(indexBegin, indexEnd, data2.size());
+
 		List<Double> data1t = data1.subList(indexBegin, indexEnd+1);
 		List<Double> data2t = data2.subList(indexBegin, indexEnd+1);
 		
@@ -161,7 +155,7 @@ public class SwingData {
 			curIndex++;
 		}
 			
-		return -2;
+		return -1;
 	}
 
 	/*
@@ -170,17 +164,17 @@ public class SwingData {
 	 * Return the the starting index and ending index of all continuous samples that meet this criteria for at least 
 	 * winLength data points
 	 */
-	public int searchMultiContinuityWithinRange(List<Double> data, int indexBegin, int indexEnd, double thresholdLo, 
+	public ArrayList<Integer> searchMultiContinuityWithinRange(List<Double> data, int indexBegin, int indexEnd, double thresholdLo, 
 			double thresholdHi, int winLength) {
 		int count = 0;
 		int curIndex = 0;
 		int ret = -1;
+		ArrayList<Integer> r = new ArrayList<Integer>();
 		boolean continuous = false;
-		if ((indexBegin <0 || indexBegin >= data.size()) || (indexEnd <0 || indexEnd >= data.size()) || 
-				(indexEnd < indexBegin) || (thresholdHi < thresholdLo)){
-			System.out.println("Invalid Index or threshold provided");
-			return -1;
-		}
+
+		checkIndexLimits(indexBegin, indexEnd, data.size());
+		checkThreholdLimits(thresholdLo, thresholdHi);
+
 		for (double dob : data.subList(indexBegin, indexEnd+1)) {
 			//System.out.println(dob);
 			
@@ -195,14 +189,35 @@ public class SwingData {
 				continuous = false;
 			}
 			if (count == winLength && continuous == true) {
-				System.out.println("searchMultiContinuityWithinRange return: " + ret);
-				return ret;
+				
+				r.add(ret);
+				r.add(indexBegin + curIndex);
+				System.out.println("searchMultiContinuityWithinRange return: " + r);
+				return r;
 			}
 			curIndex++;
 		}
-			
-		return -2;
+
+		return null;
 		
+	}
+
+	public void checkIndexLimits(int indexBegin, int indexEnd, int size) {
+		if ((indexBegin <0 || indexBegin >= size) || (indexEnd <0 || indexEnd >= size) || (indexEnd < indexBegin)){
+			throw new IllegalArgumentException("Invalid Index provided");
+		}
+	}
+
+	public void checkBackIndexLimits(int indexBegin, int indexEnd, int size) {
+		if ((indexBegin <0 || indexBegin >= size) || (indexEnd <0 || indexEnd >= size) || (indexEnd > indexBegin)){
+			throw new IllegalArgumentException("Invalid Index provided");
+		}
+	}
+
+	public void checkThreholdLimits(double thresholdLo, double thresholdHi) {
+		if (thresholdLo > thresholdHi){
+			throw new IllegalArgumentException("Invalid thresholds provided");
+		}
 	}
 
 	public static void main(String[] args) {
@@ -214,8 +229,8 @@ public class SwingData {
 		List<Double> records4 = new LinkedList<>();
 		List<Double> records5 = new LinkedList<>();
 		List<Double> records6 = new LinkedList<>();
-		
-		
+
+
 		try (BufferedReader br = new BufferedReader(new FileReader(FILE_PATH))) {
 		    String line;
 		    while ((line = br.readLine()) != null) {
@@ -237,7 +252,7 @@ public class SwingData {
 		    sd.backSearchContinuityWithinRange(records2, 1200, 700, 0, 0.2, 25);
 		    sd.searchContinuityAboveValueTwoSignals(records1, records2, 33, 400, 0.85, 0.90, 10);
 		    sd.searchMultiContinuityWithinRange(records3, 10, 1000, 0.1, 0.2, 32);
-		    
+
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
