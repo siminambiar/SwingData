@@ -27,22 +27,15 @@ public class SwingData {
 			int winLength) {
 		int count = 0;
 		int curIndex = 0;
-		int ret = -1;
 
 		checkIndexLimits(indexBegin, indexEnd, data.size());
 
 		for (double dob : data.subList(indexBegin, indexEnd+1)) {
-			//System.out.println(dob);
-			
-			if (dob > threshold) {
-				count++;
-				if (ret == -1) {
-					ret = indexBegin + curIndex;
-				}
-			}
+
+			count = checkContinuity(1, dob, threshold, 0.0, 0.0, count);
 			if (count == winLength) {
-				System.out.println("searchContinuityAboveValue return: " + ret);
-				return ret;
+				System.out.println("searchContinuityAboveValue return " + (indexBegin + curIndex - winLength +1));
+				return (indexBegin + curIndex - winLength +1);
 			}
 			curIndex++;
 		}
@@ -62,7 +55,6 @@ public class SwingData {
 		
 		int count = 0;
 		int curIndex = 0;
-		int ret = -1;
 
 		checkBackIndexLimits(indexBegin, indexEnd, data.size());
 		checkThreholdLimits(thresholdLo, thresholdHi);
@@ -72,24 +64,16 @@ public class SwingData {
 		Collections.reverse(temp);
 		
 		for (double dob : temp) {
-			//System.out.println(dob);
-			
-			if (dob > thresholdLo && dob < thresholdHi) {
-				count++;
-				if (ret == -1) {
-					ret = indexBegin - curIndex;
-				}
-			}
+			count = checkContinuity(2, dob, thresholdLo, 0.0, thresholdHi, count);
 			if (count == winLength) {
-				System.out.println("backSearchContinuityWithinRange return: " + ret);
-				return ret;
+				System.out.println("backSearchContinuityWithinRange return " + (indexBegin - curIndex + winLength -1));
+				return (indexBegin - curIndex + winLength -1);
 			}
 			curIndex++;
 		}
-			
+
 		return -1;
-		
-		
+
 	}
 
 	/*
@@ -99,12 +83,9 @@ public class SwingData {
 	 * that meet these criteria for at least winLength samples.
 	 */
 	public int searchContinuityAboveValueTwoSignals(List<Double> data1, List<Double> data2, int indexBegin, 
-			int indexEnd, double threshold1, double threshold2, int winLength) {
-		int count1 = 0;
-		int count2 = 0;
+													int indexEnd, double threshold1, double threshold2, int winLength) {
+		int count = 0;
 		int curIndex = 0;
-		int ret1 = -1;
-		int ret2 = -1;
 
 		checkIndexLimits(indexBegin, indexEnd, data1.size());
 		checkIndexLimits(indexBegin, indexEnd, data2.size());
@@ -114,43 +95,17 @@ public class SwingData {
 		
 		Iterator<Double> di1 = data1t.iterator();
 		Iterator<Double> di2 = data2t.iterator();
-		double dob1;
-		double dob2;
-		while (di1.hasNext() || di2.hasNext()) {
-			if (di1.hasNext()) {
-				dob1 = di1.next();
-				if (dob1 > threshold1) {
-					count1++;
-					if (ret1 == -1 || ret2 != ret1) {
-						ret1 = indexBegin + curIndex;
-					}
-				}
-				if (count1 == winLength) {
-					//System.out.println("ret1: " + ret1);
-					//return ret;
-				}
 
-			}
-			
-			if (di2.hasNext()) {
-				dob2 = di2.next();
-				if (dob2 > threshold1) {
-					count2++;
-					if (ret2 == -1 || ret1 != ret2) {
-						ret2 = indexBegin + curIndex;
-					}
-				}
-				if (count2 == winLength) {
-					//System.out.println("ret1: " + ret1);
-					//return ret;
-				}
-				
-			}
-			
+		while (di1.hasNext() && di2.hasNext()) {
 
-			if (count1 >= winLength && count2 >=winLength && ret1 == ret2) {
-				System.out.println("searchContinuityAboveValueTwoSignals return " + ret1);
-				return ret1;
+			double dob1;
+			double dob2;
+			dob1 = di1.next();
+			dob2 = di2.next();
+			count = checkContinuity(3, dob1, threshold1, dob2, threshold2, count);
+			if (count == winLength) {
+				System.out.println("searchContinuityAboveValueTwoSignals return " + (indexBegin + curIndex - winLength +1));
+				return indexBegin + curIndex - winLength;
 			}
 			curIndex++;
 		}
@@ -168,36 +123,23 @@ public class SwingData {
 			double thresholdHi, int winLength) {
 		int count = 0;
 		int curIndex = 0;
-		int ret = -1;
-		ArrayList<Integer> r = new ArrayList<Integer>();
-		boolean continuous = false;
 
 		checkIndexLimits(indexBegin, indexEnd, data.size());
 		checkThreholdLimits(thresholdLo, thresholdHi);
 
 		for (double dob : data.subList(indexBegin, indexEnd+1)) {
 			//System.out.println(dob);
-			
-			if (dob > thresholdLo && dob < thresholdHi) {
-				count++;
-				if (ret == -1 || continuous == false) {
-					ret = indexBegin + curIndex;
-					continuous = true;
-				}
-			} else {
-				count = 0;
-				continuous = false;
-			}
-			if (count == winLength && continuous == true) {
-				
-				r.add(ret);
+			count = checkContinuity(4, dob, thresholdLo, 0.0, thresholdHi, count);
+			if (count == winLength) {
+				ArrayList<Integer> r = new ArrayList<Integer>();
+				r.add(indexBegin + curIndex - winLength +1);
 				r.add(indexBegin + curIndex);
 				System.out.println("searchMultiContinuityWithinRange return: " + r);
 				return r;
 			}
+
 			curIndex++;
 		}
-
 		return null;
 		
 	}
@@ -218,6 +160,17 @@ public class SwingData {
 		if (thresholdLo > thresholdHi){
 			throw new IllegalArgumentException("Invalid thresholds provided");
 		}
+	}
+
+	/*type is the API number*/
+	public int checkContinuity(int type, double dob1, double threshold1, double dob2, double threshold2, int count) {
+		if ((type == 4 && dob1 > threshold1 && dob1 < threshold2) ||
+			(type == 3 && dob1 > threshold1 && dob2 > threshold2) ||
+			(type == 2 && dob1 > threshold1 && dob1 < threshold2) ||
+			(type == 1 && dob1 > threshold1)) {
+			return ++count;
+		}
+		return 0; //reset count
 	}
 
 	public static void main(String[] args) {
